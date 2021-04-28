@@ -1,18 +1,20 @@
 package com.idemeum.sampleapp;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.idemeum.androidsdk.listeners.IdemeumSigninListener;
 import com.idemeum.androidsdk.manager.IdemeumManager;
 import com.idemeum.androidsdk.models.IdemeumSigninResponse;
 import com.idemeum.androidsdk.listeners.TokenValidationListener;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,6 +28,10 @@ public class MainActivity extends AppCompatActivity {
     //DVMI
     private final String apiKeyDVMI = "c1d84ad4-9442-11eb-a8b3-0242ac130003";
 
+
+    private ConstraintLayout mLayoutLogin, mLayoutUserClaims;
+    private TextView mTxtUserClaims;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,9 +39,22 @@ public class MainActivity extends AppCompatActivity {
         Button mBtnLoginWithIdemeumBiometric = findViewById(R.id.btn_login_with_idemeum_biometric);
         Button mBtnLoginWithIdemeumOneClick = findViewById(R.id.btn_login_with_idemeum_one_click);
         Button mBtnLoginWithIdemeumDVMI = findViewById(R.id.btn_login_with_idemeum_dvmi);
+        Button mBtnLogout = findViewById(R.id.logout);
+        mLayoutLogin = findViewById(R.id.layout_login);
+        mLayoutUserClaims = findViewById(R.id.layout_user_claims);
+        mTxtUserClaims = findViewById(R.id.userClaims);
 
         // initialize an idemeum manager object
+        mIdemeumManager = IdemeumManager.getInstance(apiKeyOneClick);
 
+        mIdemeumManager.isLoggedIn(this, isLoggedIn -> {
+            if (isLoggedIn) {
+                validateToken();
+            } else {
+                showLoginButton();
+            }
+
+        });
 
         mBtnLoginWithIdemeumBiometric.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -101,6 +120,29 @@ public class MainActivity extends AppCompatActivity {
                         });
             }
         });
+
+        mBtnLogout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mIdemeumManager != null) {
+                    mIdemeumManager.logout(MainActivity.this);
+                    showLoginButton();
+                }
+            }
+        });
+    }
+
+    private void showLoginButton() {
+
+        mLayoutUserClaims.setVisibility(View.GONE);
+        mLayoutLogin.setVisibility(View.VISIBLE);
+
+    }
+
+    private void showUserClaims() {
+        mLayoutUserClaims.setVisibility(View.VISIBLE);
+        mLayoutLogin.setVisibility(View.GONE);
+
     }
 
     private void validateToken() {
@@ -109,10 +151,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(JSONObject mClaims, String message) {
                 //user claims will be received as JSONObject here
-                Intent mIntent = new Intent(MainActivity.this,
-                        HomeScreenActivity.class);
-                mIntent.putExtra("response", mClaims.toString());
-                startActivity(mIntent);
+                mTxtUserClaims.setText(fetchDataFromClaims(mClaims));
+                showUserClaims();
             }
 
             @Override
@@ -121,6 +161,35 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
+    }
+
+    private String fetchDataFromClaims(JSONObject mClaims) {
+
+        StringBuilder mStringBuilder = new StringBuilder();
+        mStringBuilder.append("You are currently logged in.")
+                .append("\n\n")
+                .append("User profile:")
+                .append("\n\n");
+
+        try {
+            if (mClaims.has("given_name")) {
+                mStringBuilder.append("First Name: ").append(mClaims.getString("given_name"));
+                mStringBuilder.append("\n\n");
+            }
+            if (mClaims.has("family_name")) {
+                mStringBuilder.append("Last Name: ").append(mClaims.getString("family_name"));
+                mStringBuilder.append("\n\n");
+            }
+            if (mClaims.has("email")) {
+                mStringBuilder.append("Email Address: ").append(mClaims.getString("email"));
+                mStringBuilder.append("\n\n");
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return mStringBuilder.toString();
+        }
+
+        return mStringBuilder.toString();
     }
 
 
