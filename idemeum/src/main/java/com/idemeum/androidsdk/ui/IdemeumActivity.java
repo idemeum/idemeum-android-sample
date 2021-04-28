@@ -131,8 +131,8 @@ public class IdemeumActivity extends Activity {
                         IdemeumManager.getInstance(IdemeumManager.clientID).sendCallBack(false, null, Error.TOKEN_ERROR);
                     } else {
                         //token received
-                        IdemeumManager.getInstance(IdemeumManager.clientID).sendCallBack(true, mIdemeumSigninResponse, null);
                         SharedPrefManager.getInstance().setToken(this, mIdemeumSigninResponse.getToken());
+                        IdemeumManager.getInstance(IdemeumManager.clientID).sendCallBack(true, mIdemeumSigninResponse, null);
                     }
 
 
